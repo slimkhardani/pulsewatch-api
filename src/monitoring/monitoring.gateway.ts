@@ -8,7 +8,7 @@ import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
 
 @WebSocketGateway({
-  cors: { origin: 'http://localhost:5173' },
+  cors: { origin: process.env.FRONTEND_URL },
 })
 export class MonitoringGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
