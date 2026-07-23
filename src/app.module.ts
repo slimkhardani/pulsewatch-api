@@ -19,13 +19,21 @@ import { BillingModule } from './billing/billing.module';
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: process.env.DATABASE_HOST,
-      port: parseInt(process.env.DATABASE_PORT || '5432', 10),
-      username: process.env.DATABASE_USER,
-      password: process.env.DATABASE_PASSWORD,
-      database: process.env.DATABASE_NAME,
+      url: process.env.DATABASE_URL,
+      ...(process.env.DATABASE_URL
+        ? {}
+        : {
+            host: process.env.DATABASE_HOST,
+            port: parseInt(process.env.DATABASE_PORT || '5432', 10),
+            username: process.env.DATABASE_USER,
+            password: process.env.DATABASE_PASSWORD,
+            database: process.env.DATABASE_NAME,
+          }),
+      ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
       entities: [User, Monitor, Check, Incident],
-      synchronize: false, // dev only — auto-creates tables. We'll switch to migrations before deploy.
+      synchronize: false,
+      migrationsRun: true,
+      migrations: [__dirname + '/migrations/*{.ts,.js}'],
     }),
     AuthModule,
     UsersModule,

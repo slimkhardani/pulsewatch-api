@@ -16,7 +16,9 @@ export const MONITOR_QUEUE = 'monitor-queue';
     {
       provide: 'MONITOR_QUEUE',
       useFactory: () => new Queue(MONITOR_QUEUE, {
-        connection: { host: process.env.REDIS_HOST, port: Number(process.env.REDIS_PORT) },
+        connection: process.env.REDIS_URL
+          ? { url: process.env.REDIS_URL }
+          : { host: process.env.REDIS_HOST, port: Number(process.env.REDIS_PORT) },
       }),
     },
     MonitoringScheduler,

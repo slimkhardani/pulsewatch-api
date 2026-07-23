@@ -76,7 +76,11 @@ export class MonitoringWorker implements OnModuleInit {
           }
         }
       },
-      { connection: { host: process.env.REDIS_HOST, port: Number(process.env.REDIS_PORT) } },
+      {
+        connection: process.env.REDIS_URL
+          ? { url: process.env.REDIS_URL }
+          : { host: process.env.REDIS_HOST, port: Number(process.env.REDIS_PORT) },
+      },
     );
   }
 }
