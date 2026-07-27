@@ -1,16 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common';
-import * as nodemailer from 'nodemailer';
+import * as SibApiV3Sdk from 'sib-api-v3-sdk';
 
 @Injectable()
 export class AlertsService {
   private readonly logger = new Logger(AlertsService.name);
-  private transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: process.env.GMAIL_USER,
-      pass: process.env.GMAIL_APP_PASSWORD,
-    },
-  });
+  private apiInstance: any;
+
+  constructor() {
+    const client = SibApiV3Sdk.ApiClient.instance;
+    const apiKey = client.authentications['api-key'];
+    apiKey.apiKey = process.env.BREVO_API_KEY;
+    this.apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
+  }
 
   private wrapTemplate(title: string, bodyHtml: string, accentColor: string) {
     return `
@@ -37,8 +38,16 @@ export class AlertsService {
     return `<a href="${url}" style="display: inline-block; margin-top: 20px; padding: 12px 24px; background-color: ${color}; color: #ffffff; text-decoration: none; border-radius: 8px; font-size: 14px; font-weight: 500;">${label}</a>`;
   }
 
-  private get fromAddress() {
-    return process.env.ALERT_EMAIL_FROM || `PulseWatch Alerts <${process.env.GMAIL_USER}>`;
+  private async send(to: string, subject: string, html: string) {
+    const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
+    sendSmtpEmail.sender = {
+      name: 'PulseWatch',
+      email: process.env.BREVO_SENDER_EMAIL,
+    };
+    sendSmtpEmail.to = [{ email: to }];
+    sendSmtpEmail.subject = subject;
+    sendSmtpEmail.htmlContent = html;
+    return this.apiInstance.sendTransacEmail(sendSmtpEmail);
   }
 
   async sendDownAlert(userEmail: string, monitorName: string, url: string, cause: string) {
@@ -49,12 +58,7 @@ export class AlertsService {
          <p style="margin-top: 12px;"><strong style="color:#fff">Reason:</strong> ${cause}</p>`,
         '#dc2626',
       );
-      await this.transporter.sendMail({
-        from: this.fromAddress,
-        to: userEmail,
-        subject: `🔴 ${monitorName} is DOWN`,
-        html,
-      });
+      await this.send(userEmail, `🔴 ${monitorName} is DOWN`, html);
       this.logger.log(`Down alert sent to ${userEmail} for ${monitorName}`);
     } catch (err) {
       this.logger.error(`Failed to send down alert: ${err.message}`);
@@ -68,12 +72,7 @@ export class AlertsService {
         `<p>Good news — your monitor <strong style="color:#fff">${monitorName}</strong> (${url}) has recovered and is responding normally again.</p>`,
         '#16a34a',
       );
-      await this.transporter.sendMail({
-        from: this.fromAddress,
-        to: userEmail,
-        subject: `🟢 ${monitorName} is back UP`,
-        html,
-      });
+      await this.send(userEmail, `🟢 ${monitorName} is back UP`, html);
       this.logger.log(`Recovery alert sent to ${userEmail} for ${monitorName}`);
     } catch (err) {
       this.logger.error(`Failed to send recovery alert: ${err.message}`);
@@ -90,12 +89,7 @@ export class AlertsService {
          <p style="margin-top: 20px; font-size: 12px; color: #525252;">If the button doesn't work, copy this link: ${link}</p>`,
         '#2563eb',
       );
-      await this.transporter.sendMail({
-        from: this.fromAddress,
-        to: userEmail,
-        subject: 'Verify your PulseWatch email',
-        html,
-      });
+      await this.send(userEmail, 'Verify your PulseWatch email', html);
       this.logger.log(`Verification email sent to ${userEmail}`);
     } catch (err) {
       this.logger.error(`Failed to send verification email: ${err.message}`);
@@ -112,12 +106,7 @@ export class AlertsService {
          <p style="margin-top: 20px; font-size: 12px; color: #525252;">If you didn't request this, you can safely ignore this email.</p>`,
         '#2563eb',
       );
-      await this.transporter.sendMail({
-        from: this.fromAddress,
-        to: userEmail,
-        subject: 'Reset your PulseWatch password',
-        html,
-      });
+      await this.send(userEmail, 'Reset your PulseWatch password', html);
       this.logger.log(`Password reset email sent to ${userEmail}`);
     } catch (err) {
       this.logger.error(`Failed to send reset email: ${err.message}`);
