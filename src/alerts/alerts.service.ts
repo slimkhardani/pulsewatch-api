@@ -1,10 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Resend } from 'resend';
+import * as nodemailer from 'nodemailer';
 
 @Injectable()
 export class AlertsService {
   private readonly logger = new Logger(AlertsService.name);
-  private resend = new Resend(process.env.RESEND_API_KEY);
+  private transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.GMAIL_USER,
+      pass: process.env.GMAIL_APP_PASSWORD,
+    },
+  });
 
   private wrapTemplate(title: string, bodyHtml: string, accentColor: string) {
     return `
@@ -31,6 +37,10 @@ export class AlertsService {
     return `<a href="${url}" style="display: inline-block; margin-top: 20px; padding: 12px 24px; background-color: ${color}; color: #ffffff; text-decoration: none; border-radius: 8px; font-size: 14px; font-weight: 500;">${label}</a>`;
   }
 
+  private get fromAddress() {
+    return process.env.ALERT_EMAIL_FROM || `PulseWatch Alerts <${process.env.GMAIL_USER}>`;
+  }
+
   async sendDownAlert(userEmail: string, monitorName: string, url: string, cause: string) {
     try {
       const html = this.wrapTemplate(
@@ -39,8 +49,8 @@ export class AlertsService {
          <p style="margin-top: 12px;"><strong style="color:#fff">Reason:</strong> ${cause}</p>`,
         '#dc2626',
       );
-      await this.resend.emails.send({
-        from: process.env.ALERT_EMAIL_FROM || 'PulseWatch <onboarding@resend.dev>',
+      await this.transporter.sendMail({
+        from: this.fromAddress,
         to: userEmail,
         subject: `🔴 ${monitorName} is DOWN`,
         html,
@@ -58,8 +68,8 @@ export class AlertsService {
         `<p>Good news — your monitor <strong style="color:#fff">${monitorName}</strong> (${url}) has recovered and is responding normally again.</p>`,
         '#16a34a',
       );
-      await this.resend.emails.send({
-        from: process.env.ALERT_EMAIL_FROM || 'PulseWatch <onboarding@resend.dev>',
+      await this.transporter.sendMail({
+        from: this.fromAddress,
         to: userEmail,
         subject: `🟢 ${monitorName} is back UP`,
         html,
@@ -80,8 +90,8 @@ export class AlertsService {
          <p style="margin-top: 20px; font-size: 12px; color: #525252;">If the button doesn't work, copy this link: ${link}</p>`,
         '#2563eb',
       );
-      await this.resend.emails.send({
-        from: process.env.ALERT_EMAIL_FROM || 'PulseWatch <onboarding@resend.dev>',
+      await this.transporter.sendMail({
+        from: this.fromAddress,
         to: userEmail,
         subject: 'Verify your PulseWatch email',
         html,
@@ -102,8 +112,8 @@ export class AlertsService {
          <p style="margin-top: 20px; font-size: 12px; color: #525252;">If you didn't request this, you can safely ignore this email.</p>`,
         '#2563eb',
       );
-      await this.resend.emails.send({
-        from: process.env.ALERT_EMAIL_FROM || 'PulseWatch <onboarding@resend.dev>',
+      await this.transporter.sendMail({
+        from: this.fromAddress,
         to: userEmail,
         subject: 'Reset your PulseWatch password',
         html,
