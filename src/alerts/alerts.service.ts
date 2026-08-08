@@ -39,10 +39,14 @@ export class AlertsService {
   }
 
   private async send(to: string, subject: string, html: string) {
+    if (!process.env.BREVO_API_KEY) {
+      this.logger.warn(`Email alert skipped for ${to}: BREVO_API_KEY is not configured in .env`);
+      return;
+    }
     const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
     sendSmtpEmail.sender = {
       name: 'PulseWatch',
-      email: process.env.BREVO_SENDER_EMAIL,
+      email: process.env.BREVO_SENDER_EMAIL || 'no-reply@pulsewatch.com',
     };
     sendSmtpEmail.to = [{ email: to }];
     sendSmtpEmail.subject = subject;
