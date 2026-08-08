@@ -14,6 +14,9 @@ import { MonitoringModule } from './monitoring/monitoring.module';
 import { AlertsModule } from './alerts/alerts.module';
 import { BillingModule } from './billing/billing.module';
 
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -44,5 +47,7 @@ import { BillingModule } from './billing/billing.module';
     AlertsModule,
     BillingModule,
   ],
+  controllers: [AppController],
+  providers: [AppService],
 })
 export class AppModule {}
